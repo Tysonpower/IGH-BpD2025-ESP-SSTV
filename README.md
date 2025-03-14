@@ -1,5 +1,5 @@
 # ESP32 SSTV Transmitter with DHT22 & Custom Font 📡🌡️
-
+![Empfangens Bild des SSTV Senders](pics/sstv_m1_rx.jpg)
 Dieses Projekt verwandelt einen ESP32 (ESP-WROOM-32) in einen SSTV-Sender im Martin M1-Modus. Das Gerät erstellt ein Graustufenbild mit eingebettetem Text, der unter anderem das Rufzeichen, einen Bildzähler, Projektinformationen sowie Temperatur- und Luftfeuchtigkeitswerte vom DHT22 enthält. Das fertige Bild wird per SSTV über den Audioausgang (GPIO14) gesendet.
 
 ## Features 🚀
