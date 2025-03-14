@@ -35,7 +35,7 @@ Dieses Projekt implementiert einen multifunktionalen Transmitter auf Basis des E
   Dabei wird der PTT-Pin aktiviert und das Mikrofoneingangssignal über LEDC ausgegeben.
 
 ## Hardware
-![Empfangens Bild des SSTV Senders](pics/photo_2025-03-14_19-50-54.jpg)
+![Empfangens Bild des SSTV Senders](pics/Sender_Prototype_SA818.jpg)
 ### Benötigte Komponenten
 
 - ESP32 (z. B. ESP32-WROOM‑32)
