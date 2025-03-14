@@ -34,5 +34,5 @@ Dieses Projekt verwandelt einen ESP32 (ohne PSRAM) in einen SSTV-Sender im Marti
 1. **Repository klonen:**
 
    ```bash
-   git clone https://github.com/deinBenutzername/ESP32_SSTV_DHT22.git
-   cd ESP32_SSTV_DHT22
+   git clone https://github.com/ighamspirit/IGH-BpD2025-ESP-SSTV.git
+   cd IGH-BpD2025-ESP-SSTV
