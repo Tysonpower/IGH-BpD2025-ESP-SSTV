@@ -1,32 +1,40 @@
 # ESP32 SSTV Transmitter with DHT22 & Custom Font 📡🌡️
 
-Dieses Projekt verwandelt einen ESP32 (ohne PSRAM) in einen SSTV-Sender im Martin M1-Modus. Dabei werden:
-
-- Ein statischer Graustufen-Bildpuffer (320×256) verwendet, der als "dunkelblauer" Hintergrund dient 🎨.
-- Ein benutzerdefinierter 5×7-Font (nur Großbuchstaben, Ziffern und ausgewählte Satzzeichen) verwendet, um Text in unterschiedlichen Skalierungen anzuzeigen 🅰️🔠.
-- Sensorwerte (Temperatur und Luftfeuchte) vom DHT22 (an GPIO4) ausgelesen und im Bild eingeblendet 🌡️💧.
-- Diverse Texte, wie z.B. das Rufzeichen "DA0IGH-11", "VY 73!", Projektinformationen und einen Bildzähler, zentriert ausgegeben 🖼️.
-- Das fertige Bild per SSTV über den Audioausgang (GPIO14, mittels LEDC) gesendet 🔊.
+Dieses Projekt verwandelt einen ESP32 (ESP-WROOM-32) in einen SSTV-Sender im Martin M1-Modus. Das Gerät erstellt ein Graustufenbild mit eingebettetem Text, der unter anderem das Rufzeichen, einen Bildzähler, Projektinformationen sowie Temperatur- und Luftfeuchtigkeitswerte vom DHT22 enthält. Das fertige Bild wird per SSTV über den Audioausgang (GPIO14) gesendet.
 
 ## Features 🚀
 
-- **SSTV-Transmission:** Übertragung im Martin M1-Modus, wobei alle Farbkanäle denselben Grauwert verwenden.
-- **DHT22 Integration:** Messung von Temperatur und Luftfeuchtigkeit.
-- **Custom Font:** Minimaler 5×7-Font, der auch Zeichen wie Q, Y, / und ! enthält.
-- **Bildzähler:** Ein Bildzähler ("PIC-NR.") wird automatisch hochgezählt und als dreistellige Zahl angezeigt.
-- **Modernes Design:** Alle Texte werden zentriert und mit anpassbaren Abständen ausgegeben.
+- **SSTV-Transmission:** Übertragung eines Graustufenbildes im Martin M1-Modus (alle Farbkanäle erhalten denselben Grauwert).
+- **DHT22 Integration:** Misst Temperatur und Luftfeuchtigkeit und zeigt diese im Bild an.
+- **Custom Font:** Ein minimaler 5×7-Font, der ausschließlich Großbuchstaben, Ziffern und ausgewählte Satzzeichen (inkl. Q, Y, /, !) enthält.
+- **Bildzähler:** Ein Bildzähler ("PIC-NR.") wird automatisch hochgezählt und als dreistellige Zahl (000 bis 999) angezeigt.
+- **Zentrierte Ausgabe:** Alle Texte werden zentriert ausgegeben auf einem dunkelblauen Hintergrund.
 
-## Hardware Voraussetzungen 🔧
+## Materialliste & Pinout 🔧
 
-- **ESP32** (ESP-WROOM-32, ohne PSRAM)
-- **DHT22 Sensor** (angeschlossen an GPIO4)
-- **Audio-Ausgang** (über GPIO14, entsprechend Ihrer Audio-Hardware)
+- **ESP32 Board (ESP-WROOM-32):**  
+  - Hauptcontroller für das Projekt.
+
+- **DHT22 Sensor:**  
+  - **Daten-Pin:** GPIO4  
+  - **VCC:** 3,3V (oder 5V, je nach Modul)  
+  - **GND:** Masse  
+  - *Hinweis:* Verwende ggf. einen 4,7kΩ–10kΩ Pull-up-Widerstand, falls dieser nicht im Modul integriert ist.
+
+- **Audio-Ausgang:**  
+  - **GPIO14:** Wird für den Audio-PWM-Ausgang (über LEDC) verwendet.  
+  - Verbinde diesen Pin mit einem Lautsprecher oder Verstärker.
+
+- **Zusätzliches Zubehör:**  
+  - Steckbrett und Jumperkabel  
+  - USB-Kabel zum Programmieren des ESP32  
+  - Externe Stromversorgung (optional, je nach Setup)
 
 ## Software Voraussetzungen 💻
 
-- Arduino IDE (oder PlatformIO)
-- [DHT Sensor Library](https://github.com/adafruit/DHT-sensor-library)
-- Sinus-Tabelle (`sin256.h`) – Diese muss im Projekt enthalten sein.
+- Arduino IDE oder PlatformIO  
+- [DHT Sensor Library](https://github.com/adafruit/DHT-sensor-library)  
+- Sinus-Tabelle (`sin256.h`) – muss im Projekt enthalten sein  
 - Passende Board-Einstellungen für den ESP32
 
 ## Installation & Verwendung 📥
