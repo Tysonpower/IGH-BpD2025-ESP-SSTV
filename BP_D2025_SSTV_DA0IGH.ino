@@ -4,13 +4,22 @@
 #include <string.h>
 
 // ------------------------------
+// Pin-Definitionen
+// ------------------------------
+#define DHTPIN 4         // DHT22 an GPIO4
+#define DHTTYPE DHT22
+#define PTT_PIN 13       // SA818 PTT an GPIO13
+#define MIC_PIN 19       // Mikrofoneingang an GPIO19
+#define SA818_TX_PIN 16  // Serial1 TX für SA818 an GPIO16
+#define SA818_RX_PIN 15  // Serial1 RX für SA818 an GPIO15
+#define AUDIO_OUT_PIN 25 // Audioausgang (LEDC) an GPIO25
+
+// ------------------------------
 // DHT22 Setup
 // ------------------------------
-#define DHTPIN 4       // DHT22 an Pin GPIO4
-#define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
 
-// Globaler Bildzähler (dreistellig, 000 bis 999)
+// Globaler Bildzähler (dreistellig)
 unsigned int picCounter = 0;
 
 // ------------------------------
@@ -43,7 +52,6 @@ volatile uint32_t TFLAG = 0;
 #define IMG_HEIGHT 256
 
 // Globaler Bildpuffer als Graustufenbild (1 Byte pro Pixel)
-// Gesamtgröße: 320 x 256 = 81920 Byte (~82 KB)
 uint8_t imageBuffer[IMG_WIDTH * IMG_HEIGHT];
 
 // ------------------------------
@@ -64,14 +72,13 @@ public:
   bool color;
   bool martin;
   bool robot;
-
+  
   SSTV_config_t(uint8_t v) {
     vis_code = v;
     switch (vis_code) {
-      case 44: // Martin M1 (Farbe) – hier wird ein Graustufenbild gesendet
+      case 44: // Martin M1 – Graustufen
         robot = false;
         martin = true;
-        // Graustufen: daher color = false
         color = false;
         width = IMG_WIDTH;
         height = IMG_HEIGHT;
@@ -88,7 +95,7 @@ public:
 };
 
 SSTV_config_t* currentSSTV = nullptr;
-uint8_t* bitmap;  // Zeiger auf den Bildpuffer, der an den SSTV-Code übergeben wird
+uint8_t* bitmap;  // Zeiger auf den Bildpuffer
 
 // ------------------------------
 // SSTV-Übertragungsvariablen
@@ -109,7 +116,7 @@ uint8_t SSTV_RUNNING = 0;
 TaskHandle_t sampleHandlerHandle;
 
 // ------------------------------
-// Audio-ISR
+// Audio-ISR (SSTV-Modus)
 // ------------------------------
 void IRAM_ATTR audioISR() {
   PCW += FTW;
@@ -173,9 +180,8 @@ void sampleHandler(void *p) {
           SSTVnext += 30.0 + currentSSTV->h_sync_time;
           rasterX = 0;
           rasterY = 0;
-          SSTVseq = 10;   // Übergang zu Martin-Modus
+          SSTVseq = 10;
           break;
-        // Im Martin-Modus: Da unser Bild Graustufen enthält, wird derselbe Wert für alle drei Kanäle verwendet.
         case 10:  // "Grüner" Kanal
           if (rasterX == currentSSTV->width) {
             rasterX = 0;
@@ -264,7 +270,8 @@ const Font5x7 font[] = {
   { 'T', { 0x01, 0x01, 0x7F, 0x01, 0x01 } },
   { 'U', { 0x3F, 0x40, 0x40, 0x40, 0x3F } },
   { 'V', { 0x1F, 0x20, 0x40, 0x20, 0x1F } },
-  { 'Y', { 0x01, 0x02, 0x7C, 0x02, 0x01 } },
+  // Angepasstes Y – Alternative Version
+  { 'Y', { 0x04, 0x08, 0x70, 0x08, 0x04 } },
   
   // Ziffern
   { '0', { 0x3E, 0x45, 0x49, 0x51, 0x3E } },
@@ -324,7 +331,7 @@ void drawText(int x, int y, const char* text, int scale, uint8_t val) {
   int cursor = x;
   for (int i = 0; text[i] != '\0'; i++) {
     drawChar(cursor, y, text[i], scale, val);
-    cursor += 5 * scale + 2; // mindestens 2 Pixel Abstand zwischen den Buchstaben
+    cursor += 5 * scale + 2; // mindestens 2 Pixel Abstand
   }
 }
   
@@ -332,36 +339,33 @@ void drawText(int x, int y, const char* text, int scale, uint8_t val) {
 // Bild erstellen: Hintergrund und Text-Overlay
 // ------------------------------
 void createImage() {
-  // Fülle den Bildpuffer mit einem niedrigen Grauwert (40) als "dunkelblauer" Hintergrund
+  // Fülle den Bildpuffer mit Grauwert 40 als "dunkelblauer" Hintergrund
   for (int y = 0; y < IMG_HEIGHT; y++) {
     for (int x = 0; x < IMG_WIDTH; x++) {
       imageBuffer[y * IMG_WIDTH + x] = 40;
     }
   }
   
-  // Obere Zeile: Großschrift (Scale 5) – Rufzeichen "DA0IGH-11"
+  // Obere Zeile: Großschrift (Scale 5) – "DA0IGH-11"
   const char* headerText = "DA0IGH-11";
   int bigScale = 5;
-  int headerWidth = 9 * (5 * bigScale + 2) - 2;  // grobe Schätzung für 9 Zeichen
+  int headerWidth = 9 * (5 * bigScale + 2) - 2;
   int headerHeight = 7 * bigScale;
   int posX = (IMG_WIDTH - headerWidth) / 2;
   int posY = 10;
   drawText(posX, posY, headerText, bigScale, 255);
   
-  // Direkt darunter: In gleicher großer Schrift soll "VY 73!" zentriert erscheinen,
-  // wobei diese Zeile nur halb so hoch sein soll (wir verwenden Scale 2).
+  // Direkt darunter: In halber Höhe (Scale 2) soll "VY 73!" erscheinen.
   const char* secondaryText = "VY 73!";
   int secScale = 2;
-  int secWidth = 6 * (5 * secScale + 2) - 2; // 6 Zeichen
+  int secWidth = 6 * (5 * secScale + 2) - 2;
   int posY_sec = posY + headerHeight + 10;
   drawText((IMG_WIDTH - secWidth) / 2, posY_sec, secondaryText, secScale, 255);
   
-  // In kleiner Schrift (Scale 2) weitere Zeilen:
+  // Weitere Zeilen in kleiner Schrift (Scale 2):
   int smallScale = 2;
   int lineSpacing = 4;
   int lineY = posY_sec + (7 * secScale) + 10;
-  // Zentriere alle Zeilen, hier verwenden wir drawText() ab einem festen X-Wert (z.B. 10)
-  // Falls zentriert gewünscht, kann man den Text zuerst ausmessen.
   drawText(10, lineY, "BALLONPROJEKT DASSEL 2025", smallScale, 255);
   lineY += 7 * smallScale + lineSpacing;
   drawText(10, lineY, "DARC ORTSVERBAND R04", smallScale, 255);
@@ -389,17 +393,123 @@ void createImage() {
   lineY += 7 * smallScale + lineSpacing;
   drawText(10, lineY, "HTTPS://BALLON.DA0IGH.DE", smallScale, 255);
   
-  // Setze den globalen bitmap-Zeiger auf unseren Bildpuffer
   bitmap = imageBuffer;
+}
+
+// ------------------------------
+// Morse-Funktionen
+// ------------------------------
+const char* getMorse(char c) {
+  switch (toupper(c)) {
+    case 'A': return ".-";
+    case 'B': return "-...";
+    case 'C': return "-.-.";
+    case 'D': return "-..";
+    case 'E': return ".";
+    case 'F': return "..-.";
+    case 'G': return "--.";
+    case 'H': return "....";
+    case 'I': return "..";
+    case 'J': return ".---";
+    case 'K': return "-.-";
+    case 'L': return ".-..";
+    case 'M': return "--";
+    case 'N': return "-.";
+    case 'O': return "---";
+    case 'P': return ".--.";
+    case 'Q': return "--.-";
+    case 'R': return ".-.";
+    case 'S': return "...";
+    case 'T': return "-";
+    case 'U': return "..-";
+    case 'V': return "...-";
+    case 'W': return ".--";
+    case 'X': return "-..-";
+    case 'Y': return "-.--";
+    case 'Z': return "--..";
+    case '0': return "-----";
+    case '1': return ".----";
+    case '2': return "..---";
+    case '3': return "...--";
+    case '4': return "....-";
+    case '5': return ".....";
+    case '6': return "-....";
+    case '7': return "--...";
+    case '8': return "---..";
+    case '9': return "----.";
+    default: return "";
+  }
+}
+
+void sendTone(unsigned long duration_ms) {
+  // Erzeuge Morse-Ton: Setze LEDC-Duty (hier 128) für die Dauer des Tons
+  ledc_set_duty(LEDC_HIGH_SPEED_MODE, LEDC_CHANNEL_3, 128);
+  ledc_update_duty(LEDC_HIGH_SPEED_MODE, LEDC_CHANNEL_3);
+  delay(duration_ms);
+  ledc_set_duty(LEDC_HIGH_SPEED_MODE, LEDC_CHANNEL_3, 0);
+  ledc_update_duty(LEDC_HIGH_SPEED_MODE, LEDC_CHANNEL_3);
+}
+
+void sendMorse(const char* message, int wpm) {
+  int dotDuration = 1200 / wpm; // Dot-Dauer in ms (bei 60 WPM = 20 ms)
+  
+  // Stelle LEDC-Frequenz für Morse-Ton auf 1000 Hz ein
+  ledc_set_freq(LEDC_HIGH_SPEED_MODE, LEDC_TIMER_1, 1900);
+  
+  for (int i = 0; message[i] != '\0'; i++) {
+    char c = message[i];
+    if (c == ' ') {
+      delay(dotDuration * 7); // Wortabstand
+    } else {
+      const char* code = getMorse(c);
+      for (int j = 0; code[j] != '\0'; j++) {
+        if (code[j] == '.') {
+          sendTone(dotDuration);
+        } else if (code[j] == '-') {
+          sendTone(dotDuration * 3);
+        }
+        // Zwischen den Symbolen eines Buchstabens: 1 Dot-Pause (wenn nicht letztes Symbol)
+        if (code[j+1] != '\0') {
+          delay(dotDuration);
+        }
+      }
+      // Buchstabenpause: insgesamt 3 Dot-Pausen, da bereits 1 Dot-Pause erfolgt
+      delay(dotDuration * 2);
+    }
+  }
+  
+  // Setze LEDC-Frequenz zurück auf 200000 Hz (für SSTV/Voice)
+  ledc_set_freq(LEDC_HIGH_SPEED_MODE, LEDC_TIMER_1, 200000);
+}
+
+// ------------------------------
+// SA818 Sprachmodus: Mikrofon abtasten und Audio ausgeben
+// ------------------------------
+#define VOICE_TX_DURATION 10000  // Dauer in ms
+#define VOICE_SAMPLE_DELAY 10    // Wartezeit zwischen ADC-Lesungen in ms
+
+void transmitVoice() {
+  // PTT einschalten
+  digitalWrite(PTT_PIN, HIGH);
+  unsigned long startTime = millis();
+  while (millis() - startTime < VOICE_TX_DURATION) {
+    int micVal = analogRead(MIC_PIN); // Mikrofon an GPIO14
+    uint32_t duty = map(micVal, 0, 4095, 0, 255);
+    ledc_set_duty(LEDC_HIGH_SPEED_MODE, LEDC_CHANNEL_3, duty);
+    ledc_update_duty(LEDC_HIGH_SPEED_MODE, LEDC_CHANNEL_3);
+    delay(VOICE_SAMPLE_DELAY);
+  }
+  // PTT ausschalten
+  digitalWrite(PTT_PIN, LOW);
 }
   
 // ------------------------------
-// SSTV-Übertragung starten
+// SSTV-Übertragung (Bildmodus)
 // ------------------------------
 void doImage() {
   createImage();
   if (currentSSTV) { delete currentSSTV; currentSSTV = nullptr; }
-  currentSSTV = new SSTV_config_t(44); // Martin M1-Modus
+  currentSSTV = new SSTV_config_t(44);
   Serial.println(TIME_PER_SAMPLE, 10);
   Serial.println("Sending image via SSTV...");
   SSTVtime = 0;
@@ -412,8 +522,8 @@ void doImage() {
     delay(1000);
   }
   vTaskSuspend(sampleHandlerHandle);
-  Serial.println("Transmission finished.");
-  delay(10000);
+  Serial.println("Image transmission finished.");
+  delay(5000);
 }
   
 // ------------------------------
@@ -427,7 +537,24 @@ void setup() {
   
   dht.begin();
   
-  // Teste, ob der DHT22 lesbar ist:
+  // PTT-Pin konfigurieren
+  pinMode(PTT_PIN, OUTPUT);
+  digitalWrite(PTT_PIN, HIGH);
+  
+  // RS232 für SA818 konfigurieren (Serial1)
+  Serial1.begin(9600, SERIAL_8N1, SA818_RX_PIN, SA818_TX_PIN);
+  delay(100);
+  Serial1.println("AT+VERSION");
+  delay(500);
+  while (Serial1.available()) { Serial.println(Serial1.readStringUntil('\n')); }
+  Serial1.println("AT+DMOCONNECT");
+  delay(500);
+  while (Serial1.available()) { Serial.println(Serial1.readStringUntil('\n')); }
+  Serial1.println("AT+DMOSETGROUP=0,144.5000,144.5000,0000,0,0000");
+  delay(500);
+  while (Serial1.available()) { Serial.println(Serial1.readStringUntil('\n')); }
+  
+  // Teste DHT22:
   float testTemp = dht.readTemperature();
   if (isnan(testTemp)) {
     Serial.println("DHT22 NICHT vorhanden oder Fehler beim Lesen!");
@@ -437,7 +564,7 @@ void setup() {
     Serial.println(" C");
   }
   
-  // Konfiguriere Hardware-Timer & LEDC für Audio-PWM
+  // Konfiguriere Hardware-Timer & LEDC für Audio-PWM (SSTV & Voice/Morse)
   hw_timer_t* timer = timerBegin(2, 10, true);
   timerAttachInterrupt(timer, &audioISR, true);
   timerAlarmWrite(timer, 8000000 / F_SAMPLE, true);
@@ -452,7 +579,7 @@ void setup() {
   
   ledc_channel_config_t ledc_channel;
   ledc_channel.channel    = LEDC_CHANNEL_3;
-  ledc_channel.gpio_num   = 14;  // Audioausgang auf GPIO14
+  ledc_channel.gpio_num   = AUDIO_OUT_PIN;  // Audioausgang an GPIO25
   ledc_channel.speed_mode = LEDC_HIGH_SPEED_MODE;
   ledc_channel.timer_sel  = LEDC_TIMER_1;
   ledc_channel.duty       = 2;
@@ -465,7 +592,21 @@ void setup() {
 }
   
 void loop() {
+  digitalWrite(PTT_PIN, LOW);
+  // Zuerst SSTV-Bildmodus:
   doImage();
-  delay(15000);
+  
+  // Dann Morseübertragung des Rufzeichens "DA0IGH" bei 60 WPM:
+  Serial.println("Sending Morse: DA0IGH");
+  sendMorse("DA0IGH", 15);
+  Serial.println("Morse transmission finished.");
+  
+  // Danach Sprachmodus (optional):
+  //Serial.println("Starting voice transmission...");
+  //transmitVoice();
+  //Serial.println("Voice transmission finished.");
+  
+  digitalWrite(PTT_PIN, HIGH);
+  delay(45000);
   Serial.println(millis());
 }
