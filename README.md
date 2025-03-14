@@ -1,5 +1,5 @@
 # ESP32 SA818 SSTV & Morse Transmitter with DHT22 & Custom Font 📡🌡️
-![Empfangens Bild des SSTV Senders](pics/sstv_m1_rx.jpg)
+![Empfangens Bild des SSTV Senders](pics/sstv_m1_rx.jpg){ width=300px }
 
 Dieses Projekt implementiert einen multifunktionalen Transmitter auf Basis des ESP32, der folgende Funktionen bereitstellt:
 
