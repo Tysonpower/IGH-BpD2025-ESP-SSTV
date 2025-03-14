@@ -1,5 +1,5 @@
 # ESP32 SA818 SSTV & Morse Transmitter with DHT22 & Custom Font 📡🌡️
-![Empfangens Bild des SSTV Senders](pics/sstv_m1_rx.jpg){ width=300px }
+<img src="pics/sstv_m1_rx.jpg" alt="Empfangens Bild des SSTV Senders" width="300">
 
 Dieses Projekt implementiert einen multifunktionalen Transmitter auf Basis des ESP32, der folgende Funktionen bereitstellt:
 
@@ -35,7 +35,7 @@ Dieses Projekt implementiert einen multifunktionalen Transmitter auf Basis des E
   Dabei wird der PTT-Pin aktiviert und das Mikrofoneingangssignal über LEDC ausgegeben.
 
 ## Hardware
-![Empfangens Bild des SSTV Senders](pics/Sender_Prototype_SA818.jpg)
+<img src="pics/Sender_Prototype_SA818.jpg" alt="Empfangens Bild des SSTV Senders" width="300">
 ### Benötigte Komponenten
 
 - ESP32 (z. B. ESP32-WROOM‑32)
